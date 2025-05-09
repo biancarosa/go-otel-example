@@ -1,0 +1,77 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  go-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - otel-collector
+    networks:
+      - otel-network
+    restart: unless-stopped
+    # Add DNS configuration to ensure service discovery works
+    dns_search: .
+    # Optionally, you can add explicit hostname for the API service
+    hostname: go-api
+    # Add health check to ensure the service is working
+    healthcheck:
+      test: ["CMD", "wget", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus exporter
+    networks:
+      - otel-network
+    restart: unless-stopped
+    # Add explicit hostname for the collector service
+    hostname: otel-collector
+    # Add health check for the collector
+    healthcheck:
+      test: ["CMD", "wget", "-O", "/dev/null", "http://localhost:13133"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - otel-collector
+    networks:
+      - otel-network
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+
+networks:
+  otel-network:
+    driver: bridge
+    # Add explicit subnet configuration to ensure consistent IP allocation
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  prometheus-data:

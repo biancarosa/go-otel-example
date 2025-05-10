@@ -1,1 +1,2 @@
-scripts/
+.env
+go-otel-example

@@ -1,9 +1,9 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24.2-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod files
-COPY go.mod ./
+# Copy go mod and sum files
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source code
@@ -18,4 +18,7 @@ FROM alpine:3.19
 WORKDIR /app
 
 # Copy the binary from the builder stage
-COPY --from=builder /app/api
+COPY --from=builder /app/api /app/api
+
+# Run the binary
+ENTRYPOINT ["/app/api"]

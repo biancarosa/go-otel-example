@@ -27,23 +27,27 @@ exporters:
     namespace: go_otel
     send_timestamps: true
     metric_expiration: 180m
-  logging:
-    loglevel: debug
-    sampling_initial: 5
-    sampling_thereafter: 200
+  zipkin:
+    endpoint: http://jaeger:9411/api/v2/spans
+  otlphttp/honeycomb:
+    endpoint: https://api.honeycomb.io
+    headers:
+      x-honeycomb-team: ${HONEYCOMB_API_KEY}
+      x-honeycomb-dataset: ${HONEYCOMB_DATASET}
+  debug:
+    verbosity: detailed
 
 service:
   pipelines:
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch, filter]
-      exporters: [prometheus, logging]
+      exporters: [prometheus, debug]
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [logging]
+      exporters: [zipkin, otlphttp/honeycomb, debug]
   
-  # Add health check extension
   extensions: [health_check]
   telemetry:
     logs:
@@ -51,4 +55,4 @@ service:
 
 extensions:
   health_check:
-    endpoint: 0.0.0.0:13133
+    endpoint: 0.0.0.0:13133 

@@ -137,6 +137,18 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "OK")
 }
 
+func recoverMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("PANIC in handler: %v", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	// Initialize OpenTelemetry
 	ctx := context.Background()
@@ -174,26 +186,26 @@ func main() {
 	}
 
 	// Set up HTTP handlers with OpenTelemetry instrumentation
-	http.Handle("/", otelhttp.NewHandler(
+	http.Handle("/", recoverMiddleware(otelhttp.NewHandler(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestCounter.Add(r.Context(), 1, otelmetric.WithAttributes(attribute.String("endpoint", "home")))
 			homeHandler(w, r)
 		}),
 		"home",
-	))
+	)))
 
-	http.Handle("/user", otelhttp.NewHandler(
+	http.Handle("/user", recoverMiddleware(otelhttp.NewHandler(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestCounter.Add(r.Context(), 1, otelmetric.WithAttributes(attribute.String("endpoint", "user")))
 			userHandler(w, r)
 		}),
 		"user",
-	))
+	)))
 
-	http.Handle("/health", otelhttp.NewHandler(
+	http.Handle("/health", recoverMiddleware(otelhttp.NewHandler(
 		http.HandlerFunc(healthHandler),
 		"health",
-	))
+	)))
 
 	// Start server
 	port := 8080

@@ -14,11 +14,20 @@ This setup demonstrates a production-grade observability pipeline:
    - Receives data from the application via OTLP
    - Processes data (batching, filtering, etc.)
    - Exports metrics to Prometheus
+   - Exports traces to Jaeger and Honeycomb
 
 3. **Prometheus**: Metrics storage
    - Scrapes metrics from the OpenTelemetry Collector
    - Stores time-series data
    - Provides query capabilities
+
+4. **Jaeger**: Traces visualization
+   - Receives traces from the OpenTelemetry Collector
+   - Provides visualization and exploration of trace data
+
+5. **Honeycomb**: Cloud-based observability
+   - Receives traces from the OpenTelemetry Collector
+   - Provides advanced querying and visualization features
 
 ## Benefits of Using the Collector
 
@@ -62,3 +71,26 @@ In Prometheus, try these queries:
 - [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
 - [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/)
 - [Prometheus Documentation](https://prometheus.io/docs/introduction/overview/)
+
+## Honeycomb Integration
+
+This project also supports sending telemetry data to [Honeycomb](https://www.honeycomb.io/), a cloud-based observability platform.
+
+To configure Honeycomb:
+
+1. Get your API key from the Honeycomb UI
+
+2. Set environment variables before starting the services:
+   ```bash
+   export HONEYCOMB_API_KEY=your_api_key
+   export HONEYCOMB_DATASET=go-otel-example
+   docker-compose up -d
+   ```
+
+3. Alternatively, create a `.env` file in the project root:
+   ```
+   HONEYCOMB_API_KEY=your_api_key
+   HONEYCOMB_DATASET=go-otel-example
+   ```
+
+4. Access your traces in the Honeycomb UI
